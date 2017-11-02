@@ -1,0 +1,48 @@
+//ARDUINO
+//Серво мотор + рфід + піщалка 
+#include <Servo.h>
+#include <SPI.h>
+#include <MFRC522.h> // бібліотека "RFID".
+#define SS_PIN 10
+#define RST_PIN 9
+MFRC522 mfrc522(SS_PIN, RST_PIN);
+unsigned long uidDec, uidDecTemp;  // Збереження мітки 
+Servo servo;
+void setup() {
+  pinMode(13, OUTPUT);
+  Serial.begin(9600);
+  Serial.println("Waiting for card...");
+  SPI.begin();  //  ініціалізація SPI / Init SPI bus.
+  mfrc522.PCD_Init();     // ініціалізація MFRC522 / Init MFRC522 card.
+  servo.attach(6);
+  servo.write(0);  //Встановлюєм серво мотор в початковий стан
+}
+void loop() {
+  // Пошук нової картки , мітки
+  if ( ! mfrc522.PICC_IsNewCardPresent()) {
+    return;
+  }
+  // Вибір мітки
+  if ( ! mfrc522.PICC_ReadCardSerial()) {
+    return;
+  }
+  uidDec = 0;
+  // Відображення серійника мітки
+  for (byte i = 0; i < mfrc522.uid.size; i++)
+  {
+    uidDecTemp = mfrc522.uid.uidByte[i];
+    uidDec = uidDec * 256 + uidDecTemp;
+  }
+  Serial.println("Card UID: ");
+  Serial.println(uidDec); // Виводимо UID мітки на екран(консоль)
+  if (uidDec == 2481129217) // Порівнюємо Uid мітки,Чи вона співпадає
+  {
+    digitalWrite(2, HIGH); 
+    tone(5, 200, 500); //Звуковий сигнал відкриття
+    servo.write(90); //Повертаємо серво привод на 90 градусів (або ж тут можна вставивти код для електро-магнітного замка)
+    delay(3000); // пауза 3 сєки
+    tone(5, 500, 500); // Звук закрити
+     digitalWrite(2, LOW); 
+  }
+  servo.write(0);  //Встановлюємо серво привод в початкове положення
+}
